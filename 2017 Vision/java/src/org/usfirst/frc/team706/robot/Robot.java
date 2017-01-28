@@ -21,6 +21,61 @@ public class Robot extends SampleRobot {
 	
 	boolean currentMet;
 	
+	int step = 0;
+	
+	public double doSomeEasyMath() {
+		return 0.050942 * ultraTwo.getValue() - 2.57894;
+	}
+	
+	public void printDatGoodShit() {
+		System.out.println("nav:\t" + nav.getAngle() + "\tultra:\t" + ultraTwo.getValue());
+	}
+	
+	public void getAwayFromMe() {
+		double err = doSomeEasyMath() - Constants.GOAL_DISTANCE;
+		double pg = err * Constants.P_VAL;
+		pg = pg < 0 ? Math.max(-1, pg) : Math.min(1, pg);
+		leftMot.set(pg * Constants.SPEED_LIMIT);
+		rightMot.set(pg*-1 * Constants.SPEED_LIMIT);
+		if (err < 5 && Math.abs(pg) < 0.2) {
+			leftMot.set(0);
+			rightMot.set(0);
+			step++;
+		}
+	}
+	
+	public void gottaGetTilted() {
+		double ang = nav.getAngle();
+		double err = ang - Constants.GOAL_BEARING;
+		err = err % 360;
+		double spd = err*0.01;
+		spd = spd < 0 ? Math.max(-1, spd) : Math.min(1, spd);
+		leftMot.set(spd);
+		rightMot.set(spd);
+		if (err < 5 && Math.abs(spd) < 0.1) {
+			leftMot.set(0);
+			rightMot.set(0);
+			step++;
+		}
+	}
+	
+	public void iFoundSomeEyes() {
+		leftMot.set(leftAuto.get() ? Constants.AUTO_HIGH : Constants.AUTO_LOW);
+		rightMot.set(rightAuto.get() ? -1 * Constants.AUTO_HIGH : -1* Constants.AUTO_LOW);	
+	}
+	
+	public void currentlyOvercurrented() {
+		System.out.println(leftMot.getOutputCurrent());
+		double driveSpeed = 0;
+		if (!currentMet) {
+			driveSpeed = (Constants.MAX_CURRENT > leftMot.getOutputCurrent()) ? Constants.SPEED_LIMIT : 0;
+		}
+		if (driveSpeed == 0) {
+			currentMet = true;
+		}
+		leftMot.set(driveSpeed);
+	}
+	
 	public Robot() {
 		leftJoy = new Joystick(Constants.LEFT_JOY);
 		rightJoy = new Joystick(Constants.RIGHT_JOY);
@@ -40,71 +95,35 @@ public class Robot extends SampleRobot {
 	public void robotInit() {
 		frontCam.startAutomaticCapture(Constants.FRONT_CAM);
 		backCam.startAutomaticCapture(Constants.BACK_CAM);
-		nav.setAngleAdjustment(nav.getAngle() * -1);
 	}
 
 	@Override
 	public void autonomous() {
-		double ang = nav.getAngle();
-		double off = Constants.GOAL_BEARING - ang;
-		System.out.println("Ang: " + ang + "\tOffset: " + off);
-		if (Math.abs(off) > 5) {
-			leftMot.set(off*Constants.SPIN_PRO);
-			rightMot.set(off*Constants.SPIN_PRO);
+		while (isEnabled()) {
+			printDatGoodShit();
+			switch(step) {
+			case 0:
+				getAwayFromMe();
+				break;
+			case 1:
+				gottaGetTilted();
+				break;
+			case 2:
+				iFoundSomeEyes();
+				break;
+			}
 		}
-		else {
-			rightMot.set(0);
-			leftMot.set(0);
-		}
+		step = 0;
 	}
 
 	@Override
 	public void operatorControl() {
-		double lastErr = 0;
-		double totErr = 0;
 		while (isOperatorControl() && isEnabled()) {
-			if (leftJoy.getRawButton(Constants.TRIGGER)) {
-				leftMot.set(leftAuto.get() ? 0.3 : 0);
-				rightMot.set(rightAuto.get() ? -0.3 : 0);
-			}
-			else if (rightJoy.getRawButton(Constants.TRIGGER)) {
-				double pos = 0.050942 * ultraTwo.getValue() - 2.57894;
-				double err = pos - Constants.GOAL_DISTANCE;
-				totErr += err;
-				double pg = err * Constants.P_VAL;
-				double ig = totErr * Constants.I_VAL;
-				double dg = (lastErr-err) * Constants.D_VAL;
-				lastErr = err;	
-				double gain = pg + ig + dg;
-				leftMot.set(gain);
-				rightMot.set(gain*-1);
-			}
-			else if (leftJoy.getRawButton(Constants.BUTTON_TWO)) {
-				double ang = nav.getAngle();
-				double err = ang - Constants.GOAL_BEARING;
-				double spd = err*0.01;
-				leftMot.set(spd);
-				rightMot.set(spd);
-				System.out.println("ang: " + ang + "\terr" + err);
-			}
-			else if (rightJoy.getRawButton(Constants.BUTTON_TWO)) {
-				System.out.println(leftMot.getOutputCurrent());
-				double driveSpeed = 0;
-				if (!currentMet) {
-					driveSpeed = (Constants.MAX_CURRENT > leftMot.getOutputCurrent()) ? Constants.SPEED_LIMIT : 0;
-				}
-				if (driveSpeed == 0) {
-					currentMet = true;
-				}
-				leftMot.set(driveSpeed);
-			}
-			else {
-				currentMet = false;
-				double leftJoy_val = leftJoy.getY() * -1.0f;
-				double rightJoy_val = rightJoy.getY();
-				leftMot.set(Math.abs(leftJoy_val) > Constants.DEAD_ZONE ? leftJoy_val : 0.0f);
-				rightMot.set(Math.abs(rightJoy_val) > Constants.DEAD_ZONE ? rightJoy_val : 0.0f);
-			}
+			printDatGoodShit();
+			double leftJoy_val = leftJoy.getY() * -1.0f;
+			double rightJoy_val = rightJoy.getY();
+			leftMot.set(Math.abs(leftJoy_val) > Constants.DEAD_ZONE ? leftJoy_val : 0.0f);
+			rightMot.set(Math.abs(rightJoy_val) > Constants.DEAD_ZONE ? rightJoy_val : 0.0f);
 		}
 	}
 	

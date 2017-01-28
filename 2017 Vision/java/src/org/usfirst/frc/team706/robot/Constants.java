@@ -18,9 +18,11 @@ public class Constants {
 	public final static double I_VAL = 0;
 	public final static double D_VAL = -0.01;
 	public final static double DEAD_ZONE = 0.01;
-	public final static double SPEED_LIMIT = 0.7;
+	public final static double SPEED_LIMIT = 0.6;
 	public final static double MAX_CURRENT = 35.0;
-	public final static double GOAL_BEARING = 0;
-	public final static double GOAL_DISTANCE = 40;
+	public final static double GOAL_BEARING = -40;
+	public final static double GOAL_DISTANCE = 72.0;
 	public final static double SPIN_PRO = 0.01;
+	public final static double AUTO_HIGH = 0.4;
+	public final static double AUTO_LOW = 0.2;
 }
