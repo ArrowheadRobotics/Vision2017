@@ -20,15 +20,23 @@ public class Robot extends SampleRobot {
 	AHRS nav;
 	
 	boolean currentMet;
-	
-	int step = 0;
+	int step;
+	double offset;
 	
 	public double doSomeEasyMath() {
-		return 0.050942 * ultraTwo.getValue() - 2.57894;
+		return Constants.DIST_M * ultraTwo.getValue() - Constants.DIST_B;
+	}
+	
+	public double getMeSomeSpeed() {
+		double x = nav.getVelocityX();
+		double y = nav.getVelocityY();
+		double z = nav.getVelocityZ();
+		double t = x*x + y*y + z*z;
+		return Math.sqrt(t);
 	}
 	
 	public void printDatGoodShit() {
-		System.out.println("nav:\t" + nav.getAngle() + "\tultra:\t" + ultraTwo.getValue());
+		System.out.println("nav:\t" + (nav.getAngle()+offset) + "\tultra:\t" + ultraTwo.getValue() + "\tdist:\t" + doSomeEasyMath() + "\tvelo:\t" + getMeSomeSpeed());
 	}
 	
 	public void getAwayFromMe() {
@@ -37,7 +45,7 @@ public class Robot extends SampleRobot {
 		pg = pg < 0 ? Math.max(-1, pg) : Math.min(1, pg);
 		leftMot.set(pg * Constants.SPEED_LIMIT);
 		rightMot.set(pg*-1 * Constants.SPEED_LIMIT);
-		if (err < 5 && Math.abs(pg) < 0.2) {
+		if (err < Constants.MIN_ERR && Math.abs(pg) < Constants.MIN_CURR) {
 			leftMot.set(0);
 			rightMot.set(0);
 			step++;
@@ -45,14 +53,13 @@ public class Robot extends SampleRobot {
 	}
 	
 	public void gottaGetTilted() {
-		double ang = nav.getAngle();
+		double ang = nav.getAngle() + offset;
 		double err = ang - Constants.GOAL_BEARING;
-		err = err % 360;
 		double spd = err*0.01;
 		spd = spd < 0 ? Math.max(-1, spd) : Math.min(1, spd);
-		leftMot.set(spd);
-		rightMot.set(spd);
-		if (err < 5 && Math.abs(spd) < 0.1) {
+		leftMot.set(spd*Constants.SPEED_LIMIT);
+		rightMot.set(spd*Constants.SPEED_LIMIT);
+		if (err < Constants.MIN_ERR && Math.abs(spd) < Constants.MIN_CURR/2) {
 			leftMot.set(0);
 			rightMot.set(0);
 			step++;
@@ -89,6 +96,8 @@ public class Robot extends SampleRobot {
 		frontCam = CameraServer.getInstance();
 		backCam = CameraServer.getInstance();
 		currentMet = false;
+		step = 0;
+		offset = nav.getAngle()*-1;
 	}
 	
 	@Override
@@ -99,6 +108,8 @@ public class Robot extends SampleRobot {
 
 	@Override
 	public void autonomous() {
+		offset = nav.getAngle()*-1;
+		step = 0;
 		while (isEnabled()) {
 			printDatGoodShit();
 			switch(step) {
@@ -114,10 +125,13 @@ public class Robot extends SampleRobot {
 			}
 		}
 		step = 0;
+		offset = nav.getAngle()*-1;
 	}
 
 	@Override
 	public void operatorControl() {
+		offset = nav.getAngle()*-1;
+		step = 0;
 		while (isOperatorControl() && isEnabled()) {
 			printDatGoodShit();
 			double leftJoy_val = leftJoy.getY() * -1.0f;
@@ -125,6 +139,8 @@ public class Robot extends SampleRobot {
 			leftMot.set(Math.abs(leftJoy_val) > Constants.DEAD_ZONE ? leftJoy_val : 0.0f);
 			rightMot.set(Math.abs(rightJoy_val) > Constants.DEAD_ZONE ? rightJoy_val : 0.0f);
 		}
+		step = 0;
+		offset = nav.getAngle()*-1;
 	}
 	
 	@Override
